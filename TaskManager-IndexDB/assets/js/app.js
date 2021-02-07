@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         objectStore.createIndex('taskname','taskname',{unique:false});
         console.log('Database ready and fields created!');
     }
+    form.addEventListener('submit',addNewTask);
     function addNewTask(e){
         let newTask = {
             taskname: taskinput.value
@@ -39,6 +40,40 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
         transaction.onerror = () => {
             console.log('there was an error, try again!');
+        }
+    }
+    function displayTaskList(){
+        while(taskList.firstChild){
+            taskList.removeChild(taskList.firstChild);
+        }
+        let objectStore = DB.transaction('tasks').objectStore('tasks');
+        objectStore.openCursor().onsuccess = function(e){
+            let cursor = e.target.result;
+            if(cursor){
+                li.setAttribute('data-task-id', cursor.value.id);
+                li.appendChild(document.createTextNode(cursor.value.taskname));
+                cursor.continue();
+            }
+        }
+    }
+    clearBtn.addEventListener('click',clearAllTasks);
+    taskList.addEventListener('click', removeTask);
+    function clearAllTasks(){
+        let transaction = DB.transaction("tasks", "readwrite");
+        let tasks = transaction.objectStore("tasks");
+        tasks.clear();
+        displayTaskList();
+        console.log("Tasks Cleared!");
+    }
+    function removeTask(e){
+        if(confirm("Are You Sure About That?")){
+            let taskID = Number(e.target.parentElement.parentElement.getAttribute('data-task-id'));
+            let transaction = DB.transaction(['tasks'], 'readwrite');
+            let objectStore = transaction.objectStore('tasks');
+            objectStore.delete(taskID);
+            transaction.oncomplete = () =>{
+                e.target.parentElement.parentElement.remove();
+            }
         }
     }
 })
